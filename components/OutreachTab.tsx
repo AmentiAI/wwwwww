@@ -31,7 +31,7 @@ export default function OutreachTab() {
   const fetchEmails = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/domains?includeEmails=true')
+      const response = await fetch('/api/domains?run=1&includeEmails=true')
       const data = await response.json()
       
       if (response.ok) {
@@ -110,10 +110,10 @@ If you'd prefer not to receive future emails, please let us know.
   const sendOutreachEmail = async (emailId: string, includeReport: boolean = false) => {
     setSending(emailId)
     try {
-      const response = await fetch('/api/outreach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailId, includeReport })
+    const response = await fetch('/api/outreach?run=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailId, includeReport })
       })
 
       const data = await response.json()
@@ -169,7 +169,7 @@ If you'd prefer not to receive future emails, please let us know.
 
     for (const email of prioritizedEmails) {
       try {
-        const response = await fetch('/api/outreach', {
+        const response = await fetch('/api/outreach?run=1', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ emailId: email.id })

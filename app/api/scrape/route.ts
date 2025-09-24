@@ -13,6 +13,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = request.nextUrl
+    
+    // Require ?run=1 to prevent build-time execution
+    if (searchParams.get('run') !== '1') {
+      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+    }
+    
     const { urls } = await request.json()
 
     if (!urls || !Array.isArray(urls)) {

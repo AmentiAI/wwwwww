@@ -23,7 +23,7 @@ export default function SearchTab() {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/search', {
+      const response = await fetch('/api/search?run=1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, numResults: 100 })
@@ -53,7 +53,7 @@ export default function SearchTab() {
     const urls = results.map(result => result.link)
     
     try {
-      const response = await fetch('/api/scrape', {
+      const response = await fetch('/api/scrape?run=1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urls })
