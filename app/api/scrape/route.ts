@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
             emailsFound: 0,
             emailsAdded: 0,
             wasNewDomain: false,
-            error: domainError.message
+            error: domainError instanceof Error ? domainError.message : String(domainError)
           }
         }
       })
