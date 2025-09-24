@@ -6,6 +6,10 @@ import { sendEmail, generateOutreachEmail } from '@/lib/email-sender'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+export async function GET() {
+  return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { emailId, includeReport } = await request.json()
