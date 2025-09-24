@@ -12,6 +12,13 @@ interface Email {
     id: string
     url: string
     contacted: boolean
+    analysis?: {
+      id: string
+      title?: string
+      description?: string
+      priorityFixes: string[]
+      recommendations: string[]
+    }
   }
   createdAt: string
 }

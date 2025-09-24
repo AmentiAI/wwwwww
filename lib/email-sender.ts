@@ -12,7 +12,7 @@ export async function sendEmail(
   config: EmailConfig
 ): Promise<boolean> {
   try {
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: config.user,

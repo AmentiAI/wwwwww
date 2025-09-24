@@ -221,7 +221,7 @@ export async function analyzeWebsite(url: string): Promise<SiteAnalysis> {
     analysis.seoAnalysis.hasMetaDescription = !!descMatch
     
     const keywordsMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']*)["']/i)
-    analysis.keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
+    analysis.keywords = keywordsMatch ? keywordsMatch[1].split(',').map((k: string) => k.trim()) : []
     analysis.seoAnalysis.hasMetaKeywords = !!keywordsMatch
 
     // Social media links

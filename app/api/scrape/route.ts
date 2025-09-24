@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract unique domains from URLs
-    const domains = [...new Set(urls.map(extractDomain).filter(Boolean))]
+    const domains = Array.from(new Set(urls.map(extractDomain).filter(Boolean)))
     
     for (const domain of domains) {
       try {
