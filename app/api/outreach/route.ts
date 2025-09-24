@@ -2,30 +2,52 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateOutreachEmail } from '@/lib/email-sender'
 
-// Force dynamic rendering
+// Force dynamic rendering and prevent static generation
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const dynamicParams = true
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  
-  // Require ?run=1 to prevent build-time execution
-  if (searchParams.get('run') !== '1') {
-    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  try {
+    const { searchParams } = new URL(request.url)
+    
+    // Check for build environment
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+    }
+    
+    // Require ?run=1 to prevent build-time execution
+    if (searchParams.get('run') !== '1') {
+      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+    }
+  } catch (buildError) {
+    return NextResponse.json({ error: 'Build-time error prevented' }, { status: 400 })
   }
   
   return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
 }
 
 export async function POST(request: NextRequest) {
+  let searchParams: URLSearchParams
   try {
-    const { searchParams } = request.nextUrl
+    searchParams = request.nextUrl.searchParams
+    
+    // Check for build environment
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+    }
     
     // Require ?run=1 to prevent build-time execution
     if (searchParams.get('run') !== '1') {
       return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
     }
+  } catch (buildError) {
+    return NextResponse.json({ error: 'Build-time error prevented' }, { status: 400 })
+  }
+  
+  try {
     
     const { emailId, includeReport } = await request.json()
 
