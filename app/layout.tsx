@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'Domain Email Scraper',
   description: 'Search, scrape, and outreach tool for domain emails',
 }
- 
+  
 export default function RootLayout({
   children,
 }: {
