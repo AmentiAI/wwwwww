@@ -18,8 +18,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
     }
 
-    const results = await searchGoogle(query, numResults || 10)
+    // Default to 100 results (10 pages deep) if not specified
+    const requestedResults = numResults || 100
+    console.log(`Searching for "${query}" with ${requestedResults} results requested`)
     
+    const results = await searchGoogle(query, requestedResults)
+    
+    console.log(`Returning ${results.length} results to client`)
     return NextResponse.json({ results })
   } catch (error) {
     console.error('Search API error:', error)

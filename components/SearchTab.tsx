@@ -26,7 +26,7 @@ export default function SearchTab() {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, numResults: 10 })
+        body: JSON.stringify({ query, numResults: 100 })
       })
 
       const data = await response.json()
@@ -113,7 +113,7 @@ export default function SearchTab() {
             </button>
           </div>
 
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg p-4">
             {results.map((result, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                 <div className="flex items-start justify-between">

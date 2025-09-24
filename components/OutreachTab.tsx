@@ -133,17 +133,41 @@ If you'd prefer not to receive future emails, please let us know.
   }
 
   const sendBulkEmails = async () => {
-    const uncontactedEmails = emails.filter(email => !email.contacted)
+    // Use the same prioritization logic as the display
+    const uncontacted = emails.filter(email => !email.contacted)
+    const emailsByDomain = new Map<string, Email[]>()
     
-    if (uncontactedEmails.length === 0) {
+    // Group emails by domain
+    uncontacted.forEach(email => {
+      const domainId = email.domain.id
+      if (!emailsByDomain.has(domainId)) {
+        emailsByDomain.set(domainId, [])
+      }
+      emailsByDomain.get(domainId)!.push(email)
+    })
+    
+    // Select 1 prioritized email per domain
+    const prioritizedEmails: Email[] = []
+    emailsByDomain.forEach((domainEmails, domainId) => {
+      const priorityKeywords = ['team', 'contact', 'support']
+      const priorityEmails = domainEmails.filter(email => {
+        const emailLocal = email.address.split('@')[0].toLowerCase()
+        return priorityKeywords.some(keyword => emailLocal.includes(keyword))
+      })
+      const selectedEmail = priorityEmails.length > 0 ? priorityEmails[0] : domainEmails[0]
+      prioritizedEmails.push(selectedEmail)
+    })
+    
+    if (prioritizedEmails.length === 0) {
       toast.error('No uncontacted emails to send')
       return
     }
 
+    console.log(`📤 DEV DEBUG: Bulk sending to ${prioritizedEmails.length} prioritized emails (1 per domain)`)
     let successCount = 0
     let errorCount = 0
 
-    for (const email of uncontactedEmails) {
+    for (const email of prioritizedEmails) {
       try {
         const response = await fetch('/api/outreach', {
           method: 'POST',
@@ -184,7 +208,43 @@ If you'd prefer not to receive future emails, please let us know.
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  const uncontactedEmails = emails.filter(email => !email.contacted)
+  // Get 1 prioritized email per domain (uncontacted only)
+  const uncontactedEmails = (() => {
+    const uncontacted = emails.filter(email => !email.contacted)
+    const emailsByDomain = new Map<string, Email[]>()
+    
+    // Group emails by domain
+    uncontacted.forEach(email => {
+      const domainId = email.domain.id
+      if (!emailsByDomain.has(domainId)) {
+        emailsByDomain.set(domainId, [])
+      }
+      emailsByDomain.get(domainId)!.push(email)
+    })
+    
+    // Select 1 prioritized email per domain
+    const prioritizedEmails: Email[] = []
+    emailsByDomain.forEach((domainEmails, domainId) => {
+      // Priority keywords to look for in email addresses
+      const priorityKeywords = ['team', 'contact', 'support']
+      
+      // Find emails with priority keywords
+      const priorityEmails = domainEmails.filter(email => {
+        const emailLocal = email.address.split('@')[0].toLowerCase()
+        return priorityKeywords.some(keyword => emailLocal.includes(keyword))
+      })
+      
+      // Use priority email if found, otherwise use first email
+      const selectedEmail = priorityEmails.length > 0 ? priorityEmails[0] : domainEmails[0]
+      prioritizedEmails.push(selectedEmail)
+      
+      console.log(`🎯 DEV DEBUG: Domain ${selectedEmail.domain.url} - Selected: ${selectedEmail.address} ${priorityEmails.length > 0 ? '(PRIORITY)' : '(DEFAULT)'}`)
+    })
+    
+    console.log(`📧 DEV DEBUG: Showing ${prioritizedEmails.length} emails (1 per domain) from ${emailsByDomain.size} domains`)
+    return prioritizedEmails
+  })()
+  
   const contactedEmails = emails.filter(email => email.contacted)
 
   return (
@@ -204,7 +264,15 @@ If you'd prefer not to receive future emails, please let us know.
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-purple-600" />
+            <span className="text-sm font-medium text-purple-900">Domains with Emails</span>
+          </div>
+          <p className="text-2xl font-bold text-purple-900 mt-1">{new Set(emails.map(e => e.domain.id)).size}</p>
+        </div>
+        
         <div className="bg-blue-50 p-4 rounded-lg">
           <div className="flex items-center gap-2">
             <Mail className="w-5 h-5 text-blue-600" />
@@ -219,6 +287,7 @@ If you'd prefer not to receive future emails, please let us know.
             <span className="text-sm font-medium text-orange-900">Not Contacted</span>
           </div>
           <p className="text-2xl font-bold text-orange-900 mt-1">{uncontactedEmails.length}</p>
+          <p className="text-xs text-orange-700 mt-1">1 per domain</p>
         </div>
         
         <div className="bg-green-50 p-4 rounded-lg">

@@ -34,3 +34,57 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl
+    const domainId = searchParams.get('id')
+    const deleteAll = searchParams.get('all') === 'true'
+
+    if (deleteAll) {
+      // Delete all domains and related data
+      console.log('🗑️ DEV DEBUG: Deleting ALL domains and related data')
+      
+      // Delete in order due to foreign key constraints
+      await prisma.email.deleteMany({})
+      await prisma.websiteAnalysis.deleteMany({})
+      await prisma.domain.deleteMany({})
+      
+      console.log('✅ DEV DEBUG: All domains, emails, and analyses deleted')
+      return NextResponse.json({ 
+        success: true, 
+        message: 'All domains and related data deleted successfully' 
+      })
+    }
+
+    if (!domainId) {
+      return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 })
+    }
+
+    console.log(`🗑️ DEV DEBUG: Deleting domain ${domainId}`)
+
+    // Delete domain and all related data (emails, analysis)
+    const deletedDomain = await prisma.domain.delete({
+      where: { id: domainId },
+      include: {
+        emails: true,
+        analysis: true
+      }
+    })
+
+    console.log(`✅ DEV DEBUG: Deleted domain ${deletedDomain.url} with ${deletedDomain.emails.length} emails`)
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Domain ${deletedDomain.url} and related data deleted successfully`,
+      deletedEmails: deletedDomain.emails.length,
+      hadAnalysis: !!deletedDomain.analysis
+    })
+  } catch (error) {
+    console.error('Delete domains API error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete domain(s)' },
+      { status: 500 }
+    )
+  }
+}

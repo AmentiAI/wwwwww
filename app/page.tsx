@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import SearchTab from '@/components/SearchTab'
-import ScrapingTab from '@/components/ScrapingTab'
 import OutreachTab from '@/components/OutreachTab'
 
 export default function Home() {
@@ -10,7 +9,6 @@ export default function Home() {
 
   const tabs = [
     { id: 'search', label: 'Google Search', component: SearchTab },
-    { id: 'scraping', label: 'Domain Scraping', component: ScrapingTab },
     { id: 'outreach', label: 'Email Outreach', component: OutreachTab },
   ]
 

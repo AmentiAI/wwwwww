@@ -83,67 +83,201 @@ export function extractAddresses(text: string): string[] {
   return text.match(addressRegex) || []
 }
 
-export async function scrapeDomainForEmails(domain: string): Promise<ScrapedEmail[]> {
+function findContactAndAboutLinks(html: string, baseUrl: string): string[] {
+  const links: string[] = []
+  const allLinks: string[] = []
+  
+  // Find all <a> tags with href attributes
+  const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi
+  let match
+  
+  while ((match = linkRegex.exec(html)) !== null) {
+    const href = match[1]
+    const linkText = match[2].toLowerCase()
+    const hrefLower = href.toLowerCase()
+    
+    // Track all links found
+    allLinks.push(href)
+    
+    // Check if the link text or href contains contact/about keywords
+    const contactKeywords = ['contact', 'contact us', 'get in touch', 'reach us', 'contact-us']
+    const aboutKeywords = ['about', 'about us', 'about-us', 'who we are', 'our story', 'our team']
+    
+    const hasContactKeyword = contactKeywords.some(keyword => 
+      linkText.includes(keyword) || hrefLower.includes(keyword)
+    )
+    const hasAboutKeyword = aboutKeywords.some(keyword => 
+      linkText.includes(keyword) || hrefLower.includes(keyword)
+    )
+    
+    if (hasContactKeyword || hasAboutKeyword) {
+      // Convert relative URLs to absolute URLs
+      let fullUrl = href
+      if (href.startsWith('/')) {
+        fullUrl = baseUrl + href
+      } else if (href.startsWith('./')) {
+        fullUrl = baseUrl + href.substring(1)
+      } else if (!href.startsWith('http')) {
+        fullUrl = baseUrl + '/' + href
+      }
+      
+      // Only add if it's from the same domain
+      try {
+        const linkDomain = new URL(fullUrl).hostname
+        const baseDomain = new URL(baseUrl).hostname
+        if (linkDomain === baseDomain) {
+          links.push(fullUrl)
+          console.log(`Found contact/about link: "${linkText.trim()}" -> ${fullUrl}`)
+        }
+      } catch (e) {
+        // Invalid URL, skip
+      }
+    }
+  }
+  
+  const uniqueLinks = Array.from(new Set(links))
+  console.log(`Total links found on page: ${allLinks.length}`)
+  console.log(`Contact/about links found: ${uniqueLinks.length}`)
+  if (allLinks.length > 0) {
+    console.log(`Example of any link found: ${allLinks[0]}`)
+  }
+  
+  return uniqueLinks
+}
+
+export async function scrapeDomainForEmails(domain: string, prisma?: any): Promise<ScrapedEmail[]> {
   const emails: ScrapedEmail[] = []
   const baseUrl = `https://${domain}`
   
-  const contactPaths = [
-    '',
-    '/contact',
-    '/contact-us',
-    '/about',
-    '/about-us',
-    '/contact.html',
-    '/about.html',
-  ]
-
-  for (const path of contactPaths.slice(0, 3)) {
-    try {
-      const url = `${baseUrl}${path}`
-      console.log(`Scraping: ${url}`)
-      
-      const response = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      })
-
-      const html = response.data
-      const text = html.replace(/<[^>]*>/g, ' ')
-      const foundEmails = extractEmailsFromText(text)
-
-      for (const email of foundEmails) {
-        emails.push({
-          email: email.toLowerCase(),
-          domain,
-          foundOn: url,
-        })
+  try {
+    console.log(`🏠 DEV DEBUG: Scraping homepage: ${baseUrl}`)
+    const response = await axios.get(baseUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
+    })
 
-      const mailtoMatches = html.match(/<a[^>]*href=["']mailto:([^"']*)["'][^>]*>/gi)
-      if (mailtoMatches) {
-        for (const match of mailtoMatches) {
-          const emailMatch = match.match(/mailto:([^"'\s&]+)/i)
-          if (emailMatch) {
-            const email = emailMatch[1].toLowerCase()
-            if (email.includes('@')) {
-              emails.push({
-                email,
-                domain,
-                foundOn: url,
-              })
-            }
+    const html = response.data
+    const text = html.replace(/<[^>]*>/g, ' ')
+    
+    // Extract emails from homepage first
+    const homepageEmails = extractEmailsFromText(text)
+    
+    // Also look for mailto links on homepage
+    const mailtoMatches = html.match(/<a[^>]*href=["']mailto:([^"']*)["'][^>]*>/gi)
+    if (mailtoMatches) {
+      for (const match of mailtoMatches) {
+        const emailMatch = match.match(/mailto:([^"'\s&]+)/i)
+        if (emailMatch) {
+          const email = emailMatch[1].toLowerCase()
+          if (email.includes('@')) {
+            homepageEmails.push(email)
           }
         }
       }
-
-    } catch (error: any) {
-      console.log(`Failed to scrape ${domain}${path}:`, error.message)
-      continue
     }
+
+    // Remove duplicates from homepage emails
+    const uniqueHomepageEmails = Array.from(new Set(homepageEmails))
+    console.log(`📧 DEV DEBUG: Found ${uniqueHomepageEmails.length} emails on homepage`)
+
+    if (uniqueHomepageEmails.length > 0) {
+      // Check if any of these emails already exist in database
+      if (prisma) {
+        const existingEmails = await prisma.email.findMany({
+          where: {
+            address: { in: uniqueHomepageEmails }
+          },
+          select: { address: true }
+        })
+        
+        const existingAddresses = existingEmails.map((e: any) => e.address)
+        const newEmails = uniqueHomepageEmails.filter(email => !existingAddresses.includes(email))
+        
+        console.log(`🔍 DEV DEBUG: ${existingAddresses.length} emails already exist, ${newEmails.length} are new`)
+        
+        if (existingAddresses.length > 0 && newEmails.length === 0) {
+          console.log(`⏭️ DEV DEBUG: All homepage emails already exist in DB, skipping contact/about page scraping`)
+          return [] // Return empty array since all emails already exist
+        }
+      }
+
+      // Add homepage emails to results
+      for (const email of uniqueHomepageEmails) {
+        emails.push({
+          email: email.toLowerCase(),
+          domain,
+          foundOn: baseUrl,
+        })
+      }
+
+      console.log(`✅ DEV DEBUG: Found emails on homepage, stopping search (no need to check contact/about pages)`)
+      return emails
+    }
+
+    console.log(`🔍 DEV DEBUG: No emails found on homepage, searching contact/about pages...`)
+    
+    // Only if no emails found on homepage, look for contact/about links
+    const discoveredLinks = findContactAndAboutLinks(html, baseUrl)
+    console.log(`🔗 DEV DEBUG: Found ${discoveredLinks.length} contact/about links to check`)
+    
+    // Scrape contact/about pages (limit to first 5 since we're being more selective)
+    for (const url of discoveredLinks.slice(0, 5)) {
+      try {
+        console.log(`📄 DEV DEBUG: Scraping contact/about page: ${url}`)
+        
+        const response = await axios.get(url, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        })
+
+        const html = response.data
+        const text = html.replace(/<[^>]*>/g, ' ')
+        const foundEmails = extractEmailsFromText(text)
+
+        // Also look for mailto links
+        const mailtoMatches = html.match(/<a[^>]*href=["']mailto:([^"']*)["'][^>]*>/gi)
+        if (mailtoMatches) {
+          for (const match of mailtoMatches) {
+            const emailMatch = match.match(/mailto:([^"'\s&]+)/i)
+            if (emailMatch) {
+              const email = emailMatch[1].toLowerCase()
+              if (email.includes('@')) {
+                foundEmails.push(email)
+              }
+            }
+          }
+        }
+
+        if (foundEmails.length > 0) {
+          console.log(`📧 DEV DEBUG: Found ${foundEmails.length} emails on ${url}`)
+          for (const email of foundEmails) {
+            emails.push({
+              email: email.toLowerCase(),
+              domain,
+              foundOn: url,
+            })
+          }
+          
+          // Stop after finding emails on first contact/about page
+          console.log(`✅ DEV DEBUG: Found emails, stopping contact/about page search`)
+          break
+        }
+
+      } catch (error: any) {
+        console.log(`❌ DEV DEBUG: Failed to scrape ${url}:`, error.message)
+        continue
+      }
+    }
+    
+  } catch (error: any) {
+    console.log(`❌ DEV DEBUG: Failed to scrape homepage ${baseUrl}:`, error.message)
   }
 
+  console.log(`🎯 DEV DEBUG: Total unique emails found for ${domain}: ${emails.length}`)
   return emails
 }
 
@@ -244,7 +378,15 @@ export async function analyzeWebsite(url: string): Promise<SiteAnalysis> {
 
     // Technical analysis
     analysis.technicalInfo.hasContactForm = /<form[^>]*>/i.test(html)
-    analysis.technicalInfo.hasAboutPage = /<a[^>]*href=["'][^"']*about[^"']*["'][^>]*>/i.test(html)
+    
+    // Use the improved link detection for about page
+    const discoveredLinks = findContactAndAboutLinks(html, url)
+    const hasAboutLink = discoveredLinks.some(link => {
+      const linkLower = link.toLowerCase()
+      return linkLower.includes('about') || linkLower.includes('who-we-are') || linkLower.includes('our-story')
+    })
+    analysis.technicalInfo.hasAboutPage = hasAboutLink || /<a[^>]*href=["'][^"']*about[^"']*["'][^>]*>/i.test(html)
+    
     analysis.technicalInfo.hasPrivacyPolicy = /<a[^>]*href=["'][^"']*privacy[^"']*["'][^>]*>/i.test(html)
     analysis.technicalInfo.hasTermsOfService = /<a[^>]*href=["'][^"']*terms[^"']*["'][^>]*>/i.test(html)
     analysis.technicalInfo.mobileFriendly = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(html)
