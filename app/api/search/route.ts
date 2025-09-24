@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchGoogle } from '@/lib/google-search'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { query, numResults } = await request.json()

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { extractDomain, scrapeDomainForEmails } from '@/lib/domain-scraper'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { urls } = await request.json()

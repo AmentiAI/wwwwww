@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail, generateOutreachEmail } from '@/lib/email-sender'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { emailId, includeReport } = await request.json()
