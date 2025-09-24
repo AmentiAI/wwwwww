@@ -7,13 +7,20 @@ export const runtime = 'nodejs'
 export const revalidate = 0
 
 export async function GET(request: NextRequest) {
+  // Multiple checks to prevent build-time execution
+  const searchParams = request.nextUrl.searchParams
+  
+  // Check for build environment
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+  }
+  
+  // Require ?run=1 to prevent build-time execution
+  if (searchParams.get('run') !== '1') {
+    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  }
+  
   try {
-    const { searchParams } = request.nextUrl
-    
-    // Require ?run=1 to prevent build-time execution
-    if (searchParams.get('run') !== '1') {
-      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
-    }
     
     const contacted = searchParams.get('contacted')
     const includeEmails = searchParams.get('includeEmails') === 'true'
@@ -42,13 +49,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // Multiple checks to prevent build-time execution
+  const searchParams = request.nextUrl.searchParams
+  
+  // Check for build environment
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+  }
+  
+  // Require ?run=1 to prevent build-time execution
+  if (searchParams.get('run') !== '1') {
+    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  }
+  
   try {
-    const { searchParams } = request.nextUrl
-    
-    // Require ?run=1 to prevent build-time execution
-    if (searchParams.get('run') !== '1') {
-      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
-    }
     
     const domainId = searchParams.get('id')
     const deleteAll = searchParams.get('all') === 'true'
