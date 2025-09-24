@@ -7,7 +7,14 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  
+  // Require ?run=1 to prevent build-time execution
+  if (searchParams.get('run') !== '1') {
+    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  }
+  
   return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
 }
 

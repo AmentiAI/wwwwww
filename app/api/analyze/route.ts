@@ -7,19 +7,15 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
 
-export async function GET() {
-  // Force dynamic rendering by using request headers
-  return NextResponse.json({ 
-    message: 'This endpoint only accepts POST requests',
-    timestamp: new Date().toISOString()
-  }, { 
-    status: 405,
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    }
-  })
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  
+  // Require ?run=1 to prevent build-time execution
+  if (searchParams.get('run') !== '1') {
+    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  }
+  
+  return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
 }
 
 export async function POST(request: NextRequest) {
