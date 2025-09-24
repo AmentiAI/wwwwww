@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const revalidate = 0
 
 export async function GET() {
   return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
