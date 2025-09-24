@@ -4,6 +4,7 @@ import { sendEmail, generateOutreachEmail } from '@/lib/email-sender'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
