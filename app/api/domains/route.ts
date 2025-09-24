@@ -1,27 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// Force dynamic rendering
+// Force dynamic rendering and prevent static generation
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const dynamicParams = true
 
 export async function GET(request: NextRequest) {
-  // Multiple checks to prevent build-time execution
-  const searchParams = request.nextUrl.searchParams
-  
-  // Check for build environment
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
-    return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
-  }
-  
-  // Require ?run=1 to prevent build-time execution
-  if (searchParams.get('run') !== '1') {
-    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  // Immediate build-time protection
+  let searchParams: URLSearchParams
+  try {
+    // Multiple checks to prevent build-time execution
+    searchParams = request.nextUrl.searchParams
+    
+    // Check for build environment
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+    }
+    
+    // Require ?run=1 to prevent build-time execution
+    if (searchParams.get('run') !== '1') {
+      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+    }
+  } catch (buildError) {
+    // If anything fails during build, return immediately
+    return NextResponse.json({ error: 'Build-time error prevented' }, { status: 400 })
   }
   
   try {
-    
     const contacted = searchParams.get('contacted')
     const includeEmails = searchParams.get('includeEmails') === 'true'
 
@@ -49,21 +57,27 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Multiple checks to prevent build-time execution
-  const searchParams = request.nextUrl.searchParams
-  
-  // Check for build environment
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
-    return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
-  }
-  
-  // Require ?run=1 to prevent build-time execution
-  if (searchParams.get('run') !== '1') {
-    return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+  // Immediate build-time protection
+  let searchParams: URLSearchParams
+  try {
+    // Multiple checks to prevent build-time execution
+    searchParams = request.nextUrl.searchParams
+    
+    // Check for build environment
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return NextResponse.json({ error: 'Build phase - not executed' }, { status: 400 })
+    }
+    
+    // Require ?run=1 to prevent build-time execution
+    if (searchParams.get('run') !== '1') {
+      return NextResponse.json({ error: 'Add ?run=1 to execute' }, { status: 400 })
+    }
+  } catch (buildError) {
+    // If anything fails during build, return immediately
+    return NextResponse.json({ error: 'Build-time error prevented' }, { status: 400 })
   }
   
   try {
-    
     const domainId = searchParams.get('id')
     const deleteAll = searchParams.get('all') === 'true'
 
