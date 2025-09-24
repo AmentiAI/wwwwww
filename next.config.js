@@ -1,0 +1,10 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  env: {
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+    GOOGLE_SEARCH_ENGINE_ID: process.env.GOOGLE_SEARCH_ENGINE_ID,
+    DATABASE_URL: process.env.DATABASE_URL,
+  },
+}
+
+module.exports = nextConfig
