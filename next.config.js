@@ -5,9 +5,7 @@ const nextConfig = {
     GOOGLE_SEARCH_ENGINE_ID: process.env.GOOGLE_SEARCH_ENGINE_ID,
     DATABASE_URL: process.env.DATABASE_URL,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
+  serverExternalPackages: ['@prisma/client'],
   // Disable static optimization for API routes
   trailingSlash: false,
 }
