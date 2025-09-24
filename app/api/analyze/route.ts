@@ -8,7 +8,18 @@ export const runtime = 'nodejs'
 export const revalidate = 0
 
 export async function GET() {
-  return NextResponse.json({ message: 'This endpoint only accepts POST requests' }, { status: 405 })
+  // Force dynamic rendering by using request headers
+  return NextResponse.json({ 
+    message: 'This endpoint only accepts POST requests',
+    timestamp: new Date().toISOString()
+  }, { 
+    status: 405,
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -97,6 +108,12 @@ export async function POST(request: NextRequest) {
       analysis,
       saved: true,
       analysisId: savedAnalysis.id
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
   } catch (error) {
     console.error('Website analysis error:', error)
