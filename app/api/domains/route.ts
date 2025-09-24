@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering and prevent static generation
 export const dynamic = 'force-dynamic'
@@ -30,6 +29,9 @@ export async function GET(request: NextRequest) {
   }
   
   try {
+    // Lazy import prisma only when actually needed
+    const { prisma } = await import('@/lib/prisma')
+    
     const contacted = searchParams.get('contacted')
     const includeEmails = searchParams.get('includeEmails') === 'true'
 
@@ -78,6 +80,9 @@ export async function DELETE(request: NextRequest) {
   }
   
   try {
+    // Lazy import prisma only when actually needed
+    const { prisma } = await import('@/lib/prisma')
+    
     const domainId = searchParams.get('id')
     const deleteAll = searchParams.get('all') === 'true'
 
